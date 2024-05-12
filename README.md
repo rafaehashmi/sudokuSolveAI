@@ -2,28 +2,8 @@
 
 ## Problem Statement
 Given a 9x9 Sudoku Puzzle as a Constraint Satisfaction Problem (“CSP”), the program outputs a complete and consistent assignment.
-## CSP Presentation
-A sudoku puzzle is considered as a CSP by using a combination of dictionaries and lists. The
-most important part of any CSP is the process of defining and storing constraints. Since our
-program imposes arc-consistency, we define the constraints for each cell as binary constraints.
-For instance, given the first cell of the puzzle (indexed as A1), one of the constraints (based on
-the rules of the game) is A1!=A2. In addition to the latter, which is a constraint on the row, we
-also have constraints on the column, and the 3x3 box in which the cell is located. There are a
-total of 24 constraints for variables that do not have a value assigned to them (assignment=0) and
-25 constraints for variables that have a value assigned to them.
-## Implementation
-The basics of the implementation process was briefly discussed in the CSP presentation section
-above. In this section, we will further discuss the actual implementation process in depth by
-explaining the major decisions that were taken along with the modifications done to the AC-3,
-revise, and the backtracking algorithm.
-## Dictionary Based Implementation
-The dictionary based implementation was chosen, after encountering difficulties using DS for
-backtracking, because of the following reasons:
-- Dictionaries are essentially identical to hash maps, in the sense that they are faster for
-lookup purposes. O(1) for key based lookups.
-- Dictionaries are also easier for debugging. The latter was really useful when
-implementing backtrack-search since differentiating between passing by reference and
-value were integral.
+## What is Sudoku?
+## Implementation - Dictionary
 
 For the dictionary based implementation, we used the following dictionaries:
 - Domains: This dictionary contains the variable (i.e., the row and column identified by a

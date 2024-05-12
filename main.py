@@ -1,256 +1,483 @@
-from constants import *
 from copy import deepcopy as asvalue
+
 import numpy as np
-# Dictionary based implementation
+
+from constants import *
+
 
 def assignToBoard(variables, assignments):
-    # This function is takes a lsit of variables and a dictionary of assignments and returns a matrix with the values for each variable assigned to the right indexes
+    """
+    Assigns values to a temporary matrix representing the Sudoku board based on the variable assignments.
+
+    Args:
+        variables (list): A list of variables representing the Sudoku board positions.
+        assignments (dict): A dictionary containing the variable assignments.
+
+    Returns:
+        list: A temporary matrix representing the Sudoku board with assigned values.
+    """
+    # Create a temporary matrix to represent the Sudoku board
     tempMat = [
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,0, 0,0,0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
-    for variable in variables: tempMat[ROW_LETTER_AS_KEY[variable[0]]][int(variable[1])-1] = assignments[variable]
+    # Assign values to the temporary matrix based on the variable assignments
+    for variable in variables:
+        tempMat[rowLetterKey[variable[0]]][int(variable[1]) - 1] = assignments[variable]
     return tempMat
 
-def viewBoard(variables, assignments):
-    # When called, this function prints a matrix. This is used for visualizing the current state of the board given the list of variables and the assignments dictionary associated with it.
-    print(np.array(assignToBoard(variables,assignments)))
-    return 
 
-def gen_box_constraints():
-    # This function generates the box constraints and writes them to a file.
-    def gen_box_constraints_helper(x, y, w, z):
-        with open("map_constraints2.txt","a+") as f:
+def viewBoard(variables, assignments):
+    """
+    Print the Sudoku board based on the variable assignments.
+
+    Parameters:
+    - variables (list): A list of variables representing the Sudoku board.
+    - assignments (list): A list of assignments for the variables.
+
+    Returns:
+    None
+    """
+    # Print the Sudoku board based on the variable assignments
+    print(np.array(assignToBoard(variables, assignments)))
+    return
+
+
+def genboxConstraints():
+    """
+    Generate box constraints for each box in the Sudoku board.
+
+    This function generates box constraints for a given range of rows and columns in the Sudoku board.
+    It writes the constraints to a file named "map_constraints.txt".
+
+    Parameters:
+    None
+
+    Returns:
+    None
+    """
+
+    def genboxConstraintsHelper(x, y, w, z):
+        # Generate box constraints for a given range of rows and columns
+        with open("map_constraints.txt", "a+") as f:
             for i in range(x, y):
                 for j in range(w, z):
-                    for k in range(x,y):
+                    for k in range(x, y):
                         for l in range(w, z):
-                            if (k,l) != (i, j):
-                                f.write(f'{ROW_INDEX_AS_KEY[i]}{j+1}!={ROW_INDEX_AS_KEY[k]}{l+1}\n')
+                            if (k, l) != (i, j):
+                                f.write(
+                                    f"{rowIndexKey[i]}{j+1}!={rowIndexKey[k]}{l+1}\n"
+                                )
 
-    gen_box_constraints_helper(0,3, 0,3)
-    gen_box_constraints_helper(0,3, 3,6)
-    gen_box_constraints_helper(0,3, 6,9)
-    gen_box_constraints_helper(3,6, 0,3)
-    gen_box_constraints_helper(3,6, 3,6)
-    gen_box_constraints_helper(3,6, 6,9)
-    gen_box_constraints_helper(6,9, 0,3)
-    gen_box_constraints_helper(6,9, 3,6)
-    gen_box_constraints_helper(6,9, 6,9)
+    # Generate box constraints for each box in the Sudoku board
+    genboxConstraintsHelper(0, 3, 0, 3)
+    genboxConstraintsHelper(0, 3, 3, 6)
+    genboxConstraintsHelper(0, 3, 6, 9)
+    genboxConstraintsHelper(3, 6, 0, 3)
+    genboxConstraintsHelper(3, 6, 3, 6)
+    genboxConstraintsHelper(3, 6, 6, 9)
+    genboxConstraintsHelper(6, 9, 0, 3)
+    genboxConstraintsHelper(6, 9, 3, 6)
+    genboxConstraintsHelper(6, 9, 6, 9)
 
-def loadSudoku(board): # Called to convert a matrix to four dictionaries that are specific for the CSP
+
+def loadSudoku(board):
+    """
+    Load a Sudoku board and return the variables, indexes, domains, assignments, and constraints.
+
+    Parameters:
+    - board (list): A 2D list representing the Sudoku board.
+
+    Returns:
+    - variables (list): A list of variable names.
+    - indexes (dict): A dictionary mapping variable names to their indexes in the board.
+    - domains (dict): A dictionary mapping variable names to their domains.
+    - assignments (dict): A dictionary mapping variable names to their assigned values.
+    - constraints (dict): A dictionary mapping variable names to their constraint lists.
+    """
     variables = []
     indexes = {}
     domains = {}
     assignments = {}
     constraints = {}
 
-    with open('map_constraints.txt','r') as file: BOXCONSTRAINTS=[line.replace('\n','') for line in file.readlines()] # Load box constraints from map_constraints file
-    for i in range(0,len(board),1):
-        for j in range(0,len(board[i]),1):
-            name = f'{ROW_INDEX_AS_KEY[i]}{j+1}' # j+1 because we are mapping 0 index as 1
-            value = board[i][j]
-            domain = asvalue(INITIAL_STANDARD_DOMAIN) if value==0 else [value]
-            constraints_list = []
+    with open("map_constraints.txt", "r") as file:
+        boxConstraints = [line.replace("\n", "") for line in file.readlines()]
 
-            # Update constraints list to the contain the value==assigned_value constraint
-            if value!=0: constraints_list.append(f'{name}=={value}')
-            
-            # Generate the alldiff constraints for this variable
+    for i in range(0, len(board), 1):
+        for j in range(0, len(board[i]), 1):
+            name = f"{rowIndexKey[i]}{j+1}"
+            value = board[i][j]
+            domain = asvalue(standardDomain) if value == 0 else [value]
+            constraintList = []
+
+            if value != 0:
+                constraintList.append(f"{name}=={value}")
+
             for row in range(len(board)):
                 for col in range(len(board[row])):
-                    if row == i and col!=j:
-                        constraints_list.append(f'{name}!={ROW_INDEX_AS_KEY[row]}{col+1}')
+                    if row == i and col != j:
+                        constraintList.append(f"{name}!={rowIndexKey[row]}{col+1}")
                     if col == j and row != i:
-                        constraints_list.append(f'{name}!={ROW_INDEX_AS_KEY[row]}{col+1}')
+                        constraintList.append(f"{name}!={rowIndexKey[row]}{col+1}")
 
-            # Retrive the box constraints for this variable (where this variable is the from node)
-            for constraint in BOXCONSTRAINTS: 
-                if name in constraint[:2]: constraints_list.append(constraint)
+            for constraint in boxConstraints:
+                if name in constraint[:2]:
+                    constraintList.append(constraint)
 
             variables.append(name)
-            indexes[name]=[i,j]
-            domains[name]=domain
-            assignments[name]=value #if value!=0: assignments[name]=value # NOTE: Append variable:value only if variable has a value assigned to it (meaning !=0 since 0's are blank)
-            constraints[name]=constraints_list
+            indexes[name] = [i, j]
+            domains[name] = domain
+            assignments[name] = value
+            constraints[name] = constraintList
 
     return variables, indexes, domains, assignments, constraints
 
-def evaluate_constraint(constraint:str,assignments:dict): # Evaluates if the assignments is consistent with the constraints.
-    y_key:str = constraint[4:]
-    if y_key.isnumeric():
-        return assignments[constraint[0:2]]==int(y_key)
-    return assignments[constraint[0:2]]!=assignments[constraint[4:]]
 
-# Revise given the variable_name, domain, and assignment (Modified Revise)
-def revise(variable_name, domains, constraints, assignments):
-    variable_domain = asvalue(domains[variable_name])
-    variable_constraints = constraints[variable_name]
-    original_variable_value = asvalue(assignments[variable_name])
+def evaluateConstraint(constraint: str, assignments: dict):
+    """
+    Evaluate a constraint based on the current variable assignments.
 
+    Parameters:
+    constraint (str): The constraint to evaluate.
+    assignments (dict): A dictionary containing variable assignments.
+
+    Returns:
+    bool: True if the constraint is satisfied, False otherwise.
+    """
+    yKey: str = constraint[4:]
+    if yKey.isnumeric():
+        return assignments[constraint[0:2]] == int(yKey)
+    return assignments[constraint[0:2]] != assignments[constraint[4:]]
+
+
+def revise(variableName, domains, constraints, assignments):
+    """
+    Revises the domain of a variable based on the constraints and assignments.
+
+    Args:
+        variableName (str): The name of the variable to revise.
+        domains (dict): A dictionary mapping variable names to their domains.
+        constraints (dict): A dictionary mapping variable names to their constraints.
+        assignments (dict): A dictionary mapping variable names to their assigned values.
+
+    Returns:
+        bool: True if the domain of the variable is revised, False otherwise.
+    """
+    variableDomain = asvalue(domains[variableName])
+    variableConstraints = constraints[variableName]
+    originalVariableValue = asvalue(assignments[variableName])
     revised = False
-    for domain_value in variable_domain: # iterate through this variables domain
-        assignments[variable_name]=domain_value # set the current value in iteration as the assignment (value for the variable)
-        for constraint in variable_constraints:
-            if evaluate_constraint(constraint,assignments)==False: # if it is ever false
-                if domain_value in domains[variable_name]: domains[variable_name].remove(domain_value)
+    for domainValue in variableDomain:
+        assignments[variableName] = domainValue
+        for constraint in variableConstraints:
+            if evaluateConstraint(constraint, assignments) == False:
+                if domainValue in domains[variableName]:
+                    domains[variableName].remove(domainValue)
                 revised = True
 
-    # Reset the assignment to hold the variables original value
-    assignments[variable_name]=original_variable_value
+    assignments[variableName] = originalVariableValue
+    assignments[variableName] = originalVariableValue
     return revised
 
-# Call revise to trim the domain of every variable (Modified AC-3)
-def ac3(variables,domains,assignments,constraints):
+
+def ac3Algorithm(variables, domains, assignments, constraints):
+    """
+    Implements the AC-3 algorithm to enforce arc consistency.
+
+    Parameters:
+    - variables: A list of variables.
+    - domains: A dictionary mapping variables to their domains.
+    - assignments: A dictionary mapping variables to their assigned values.
+    - constraints: A list of constraints.
+
+    Returns:
+    - True if the AC-3 algorithm succeeds in enforcing arc consistency.
+    - False if the AC-3 algorithm fails and a domain becomes empty.
+    """
     for variable in variables:
-        revise(variable,domains,constraints,assignments)
-        if len(domains[variable])==0: return False
+        revise(variable, domains, constraints, assignments)
+        if len(domains[variable]) == 0:
+            return False
     return True
 
-def is_consistent(variable,value,assignments,constraints): # Adds the assignment to copy (as value) of the assignments dictionary and checks if all the constraints hold true, if not, returns false, else returns true
-        # set the variables value in assignments (copy as value) to be the given value
-        assignments_copy:dict = asvalue(assignments) # All changes as made on this (as its a copy by value), not the original assignments dictionary
-        assignments_copy[variable]=value
-        # check if it is consistent with the cosntraints with the help of the evalute constraint function
-        for constraint in constraints[variable]:
-            if evaluate_constraint(constraint,assignments_copy)==False: return False
-        return True
 
-def updateAssignments(variables,assignments,domains,constraints): # Given the domains and constraints, this function updates assignments so that any variable with a len(domain)==1 will have the only item in the list assigned as its value provided the assignment will be consistent
+def isConsistent(variable, value, assignments, constraints):
+    """
+    Check if assigning a value to a variable is consistent with the current assignments and constraints.
+
+    Args:
+        variable (str): The variable to assign a value to.
+        value: The value to assign to the variable.
+        assignments (dict): The current assignments of variables.
+        constraints (dict): The constraints between variables.
+
+    Returns:
+        bool: True if the assignment is consistent, False otherwise.
+    """
+    copyAssignments: dict = asvalue(assignments)
+    copyAssignments[variable] = value
+    for constraint in constraints[variable]:
+        if evaluateConstraint(constraint, copyAssignments) == False:
+            return False
+    return True
+
+
+def updateAssignments(variables, assignments, domains, constraints):
+    """
+    Update the assignments based on the current domains and constraints.
+
+    Parameters:
+    - variables (list): A list of variables.
+    - assignments (dict): A dictionary representing the current assignments.
+    - domains (dict): A dictionary representing the current domains for each variable.
+    - constraints (list): A list of constraints.
+
+    Returns:
+    - None
+    """
     for variable in variables:
-        if len(domains[variable])==1: 
-            if is_consistent(variable,domains[variable][0],assignments,constraints):
+        if len(domains[variable]) == 1:
+            if isConsistent(variable, domains[variable][0], assignments, constraints):
                 assignments[variable] = domains[variable][0]
     return
 
-def updateDomain(variables,assignments,domains): # if any variable has a value assigned to it, update its domain to only carry that value
+
+def updateDomain(variables, assignments, domains):
+    """
+    Update the domains based on the current assignments.
+
+    Parameters:
+    - variables (list): A list of variables.
+    - assignments (dict): A dictionary of variable assignments.
+    - domains (dict): A dictionary of variable domains.
+
+    Returns:
+    None
+    """
     for variable in variables:
-        if assignments[variable]!=0:
-            domains[variable]=[assignments[variable]]
+        if assignments[variable] != 0:
+            domains[variable] = [assignments[variable]]
     return
 
-def updateConstraints(variables,assignments,constraints): # for any assigned value, set a new constraint where the variable[value]==value
+
+def updateConstraints(variables, assignments, constraints):
+    """
+    Update the constraints based on the current assignments.
+
+    Parameters:
+    - variables (list): A list of variables.
+    - assignments (dict): A dictionary containing variable assignments.
+    - constraints (dict): A dictionary containing constraints for each variable.
+
+    Returns:
+    - None
+
+    This function updates the constraints dictionary based on the current assignments.
+    For each variable in the variables list, if the variable has a non-zero assignment,
+    it checks if the assignment is already present in the constraints dictionary.
+    If not, it appends the assignment to the list of constraints for that variable.
+    """
     for variable in variables:
-        if assignments[variable]!=0:
-            if f'{variable}=={assignments[variable]}' not in constraints[variable]: constraints[variable].append(f'{variable}=={assignments[variable]}')
+        if assignments[variable] != 0:
+            if f"{variable}=={assignments[variable]}" not in constraints[variable]:
+                constraints[variable].append(f"{variable}=={assignments[variable]}")
     return
 
-def updateAll(variables,domains,assignments,constraints):
-    updateDomain(variables,assignments,domains)
-    updateAssignments(variables,assignments,domains, constraints)
-    updateConstraints(variables,assignments,constraints)
+
+def updateAll(variables, domains, assignments, constraints):
+    """
+    Update the domains, assignments, and constraints based on the given variables.
+
+    Parameters:
+    variables (list): A list of variables.
+    domains (dict): A dictionary mapping variables to their domains.
+    assignments (dict): A dictionary mapping variables to their assigned values.
+    constraints (list): A list of constraints.
+
+    Returns:
+    None
+    """
+    # Update the domains, assignments, and constraints
+    updateDomain(variables, assignments, domains)
+    updateAssignments(variables, assignments, domains, constraints)
+    updateConstraints(variables, assignments, constraints)
     return
 
-def is_complete(assignments): # Check if every variable has an assignment (the dictionary has a default value of 0 for each assignment)
-    for assignment in assignments: 
-        if assignments[assignment]==0: return False
+
+def isComplete(assignments):
+    """
+    Check if all variables have been assigned a value.
+
+    Args:
+        assignments (dict): A dictionary containing variable assignments.
+
+    Returns:
+        bool: True if all variables have been assigned a value, False otherwise.
+    """
+    for assignment in assignments:
+        if assignments[assignment] == 0:
+            return False
     return True
 
-def select_unassigned_variable(variables, domains): # For selecting an unassigned variable using the MRV heuristic
-    minimum = 9 # Domains can have a max of 8 values
-    mrv_variable = None # Initialize mrv_variable as None
-    for variable in variables: # Loop through the list of variables
-        if len(domains[variable])!=1 and len(domains[variable])<minimum: # if the vairable has a domain greater than 1 and smaller than the minimum
-            minimum = len(domains[variable]) # set the length of the variables domain as the minimum (length of the smallest domain <- updated every iteration)
-            mrv_variable = variable # set the variable as the MRV variable
-    return mrv_variable
 
-# NOTE: Verified that infer does not change the parameters states but there
-def infer(variables,domains,assignments,constraints): # Returns inferences as a dict and the updated (copy as value) domains, assignments, and constraints
-    # create a copy as value of everything
-    variables_copy = asvalue(variables)
-    domains_copy = asvalue(domains)
-    assignments_copy = asvalue(assignments)
-    constraints_copy = asvalue(constraints)
+def selectUnassignedVariable(variables, domains):
+    """
+    Selects an unassigned variable with the fewest remaining values.
 
-    updateAll(variables_copy,domains_copy,assignments_copy,constraints_copy)
+    Args:
+        variables (list): A list of variables.
+        domains (dict): A dictionary mapping variables to their domains.
 
-    # call ac3
-    if ac3(variables_copy,domains_copy,assignments_copy,constraints_copy):
+    Returns:
+        The variable with the fewest remaining values.
+    """
+    minimum = 9
+    minRemainingVal = None
+    for variable in variables:
+        if len(domains[variable]) != 1 and len(domains[variable]) < minimum:
+            minimum = len(domains[variable])
+            minRemainingVal = variable
+    return minRemainingVal
 
-        updateAll(variables_copy,domains_copy,assignments_copy,constraints_copy)  # update all the copies based on fully assigned variables (assignments[variable]!=0)
-        # Get the difference between assignments and assignments copy to create a dictionary of inferences
+
+def infer(variables, domains, assignments, constraints):
+    """
+    Infers new assignments for variables based on the given domains, assignments, and constraints.
+
+    Args:
+        variables (list): A list of variables.
+        domains (dict): A dictionary mapping variables to their corresponding domains.
+        assignments (dict): A dictionary mapping variables to their current assignments.
+        constraints (list): A list of constraints.
+
+    Returns:
+        tuple: A tuple containing the inferred assignments, updated domains, updated constraints,
+               and updated assignments if the AC3 algorithm is successful. Otherwise, it returns
+               a tuple of False values.
+    """
+    copyVars = asvalue(variables)
+    copyDomains = asvalue(domains)
+    copyAssignments = asvalue(assignments)
+    copyConstraints = asvalue(constraints)
+
+    updateAll(copyVars, copyDomains, copyAssignments, copyConstraints)
+
+    if ac3Algorithm(copyVars, copyDomains, copyAssignments, copyConstraints):
+        updateAll(copyVars, copyDomains, copyAssignments, copyConstraints)
         inferences = {}
-        for variable in variables: # the length and contents of variables_copy always matches variables
-            if assignments[variable]!=assignments_copy[variable]: inferences[variable]=assignments_copy[variable]
-                
-        return inferences, domains_copy, constraints_copy, assignments_copy #return the inferences dictionary, new domain, constraints, and assignments
-    return False,False,False,False, # if AC-3 fails, return false
+        for variable in variables:
+            if assignments[variable] != copyAssignments[variable]:
+                inferences[variable] = copyAssignments[variable]
 
-# For backtracking, rather than taking instances of ds's, we just take the dictionaries (modified, not consistent with slides psuedocode but still the same logic)
-def backtrack(variables,domains,assignments,constraints): # def backtrack(the four variables without the indexes)
+        return inferences, copyDomains, copyConstraints, copyAssignments
+    return (
+        False,
+        False,
+        False,
+        False,
+    )
 
-    # Success base case: Returns the given assignments
-    if is_complete(assignments): return domains,assignments,constraints
-    variable = select_unassigned_variable(variables, domains) # select unassigned variable with the MRV heuristic      
-    original_value = asvalue(assignments[variable]) # Store the copy of the variable (asvalue) for reseting at the end of the iteration
-    
-    for value in domains[variable]: # for each value in the selected variables domain
-        if is_consistent(variable,value,assignments,constraints): # check if the value is consistent with the current assignments
 
-            assignments[variable]=value # add var=value to the assignment by upadting the variables assignment
-            inferences, domains_copy, constraints_copy, assignments_copy = infer(variables, domains, assignments, constraints)
-                    
-            if inferences!=False: # if inferences did not fail (NOTE: No need to add inferences to assignment as they are already in assignments_copy)
+def backtrack(variables, domains, assignments, constraints):
+    """
+    Backtracking algorithm to solve the Sudoku puzzle.
 
-                domains_copy, assignments_copy, constraints_copy = backtrack(variables,domains_copy,assignments_copy,constraints_copy) # call backtracking again with the updated (copies) of domains, assignments, and constraints 
-                if domains_copy!=False:
-                    return domains_copy, assignments_copy, constraints_copy # The assignments and othe fields returned by the last infer (ac-3) call
-        assignments[variable] = original_value # Remove the variable from the assignments (by reseting the assignment to hold the original value for the variabel <- will it be anything other than 0?). The inferences need not be removed since they are not present in assignments and only present in assignments_copy (same for all the domains)
-    
+    Args:
+        variables (list): List of variables in the puzzle.
+        domains (dict): Dictionary mapping variables to their domains.
+        assignments (dict): Dictionary mapping variables to their assigned values.
+        constraints (list): List of constraints for the puzzle.
+
+    Returns:
+        tuple: A tuple containing the updated domains, assignments, and constraints if a solution is found.
+               If no solution is found, it returns False for all three elements.
+    """
+    if isComplete(assignments):
+        return domains, assignments, constraints
+    variable = selectUnassignedVariable(variables, domains)
+    valueOriginal = asvalue(assignments[variable])
+
+    for value in domains[variable]:
+        if isConsistent(variable, value, assignments, constraints):
+            assignments[variable] = value
+            inferences, copyDomains, copyConstraints, copyAssignments = infer(
+                variables, domains, assignments, constraints
+            )
+
+            if inferences != False:
+                copyDomains, copyAssignments, copyConstraints = backtrack(
+                    variables, copyDomains, copyAssignments, copyConstraints
+                )
+                if copyDomains != False:
+                    return copyDomains, copyAssignments, copyConstraints
+        assignments[variable] = valueOriginal
+
     return False, False, False
 
-def solve_sudoku(board):
-    new_board = []
+
+def solveSudoku(board):
+    """
+    Solves a Sudoku puzzle using the AC-3 algorithm and backtracking.
+
+    Args:
+        board (list): The Sudoku board represented as a 2D list.
+
+    Returns:
+        list: The solved Sudoku board as a 2D list. If the puzzle is unsolvable, an empty list is returned.
+    """
+
+    newBoard = []
 
     variables, indexes, domains, assignments, constraints = loadSudoku(board)
-    # Calling AC-3: Attempting to solve the given sudoku CSP using the modified AC-3 implementation
-    if ac3(variables,domains,assignments,constraints): # If AC-3 is able to solve the problem
-        updateAll(variables,domains,assignments,constraints) # Updates the given domains, assignments, constraints to match the given variables value assignment (if it is complete)
+    if ac3Algorithm(variables, domains, assignments, constraints):
+        updateAll(variables, domains, assignments, constraints)
 
-        # Check (based) on assignments if the puzzle is solved
         solved = True
-        for variable in variables: solved = False if assignments[variable]==0 else solved
-        
-        
-        if solved==False: # If the CSP has a partial assignment (incomplete), meaning it has not been fully solved by AC-3
-            # Execute backtracking search on the board state to fully solve the board
-            backtracked_domains, backtracked_assignments, backtracked_constraints = backtrack(variables, domains, assignments, constraints)
-            
-            if backtracked_domains!=False: # if backtracking did not fail, set the new_board variable to equal to the matrix built using the given variables and backtracked_assignments
-                new_board = assignToBoard(variables, backtracked_assignments)
-            
-            else: # If backtracking fails and the puzzle is not solvable using backtracking 
-                return new_board
-        
-        else: # If the board is entirely solve using AC-3, set the new_board variable to equal to the matrix built using the given assignemtns and variables
-            new_board = assignToBoard(variables, assignments)
+        for variable in variables:
+            solved = False if assignments[variable] == 0 else solved
 
-    else: #  If the puzzle state is not solvable
-        return new_board
-    return new_board
+        if solved == False:
+            backTrackDomain, backTrackAsgn, backtracked_constraints = backtrack(
+                variables, domains, assignments, constraints
+            )
 
-if __name__=='__main__':
+            if backTrackDomain != False:
+                newBoard = assignToBoard(variables, backTrackAsgn)
+
+            else:
+                return newBoard
+
+        else:
+            newBoard = assignToBoard(variables, assignments)
+
+    else:
+        return newBoard
+    return newBoard
+
+
+if __name__ == "__main__":
+    # Example Sudoku board
     board = [
-        [7,6,0, 0,0,9, 0,1,0],
-        [8,0,0, 0,0,0, 7,2,4],
-        [0,0,0, 0,0,0, 0,0,9],
-        [4,0,6, 0,0,0, 3,0,2],
-        [0,7,0, 4,5,6, 0,0,0],
-        [0,5,1, 0,0,0, 0,7,6],
-        [1,0,0, 2,9,0, 0,4,0],
-        [2,0,7, 6,3,0, 1,0,0],
-        [0,9,8, 0,0,5, 2,0,7],
+        [0, 0, 3, 0, 0, 6, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 2, 0, 8],
+        [1, 0, 5, 2, 0, 8, 0, 6, 0],
+        [0, 0, 0, 0, 1, 2, 3, 0, 5],
+        [7, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 5, 0, 1, 0],
+        [0, 0, 2, 0, 0, 0, 0, 0, 0],
+        [3, 7, 0, 1, 0, 0, 0, 0, 2],
+        [0, 0, 9, 0, 0, 0, 7, 5, 6],
     ]
     print("Initial Board")
     print(np.array(board))
-    new_board = solve_sudoku(board)
+    newBoard = solveSudoku(board)
     print("Solved board")
-    print(np.array(new_board))
+    print(np.array(newBoard))
